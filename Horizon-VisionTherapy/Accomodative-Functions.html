@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizon | Optics Pro</title>
+    <style>
+        :root {
+            --bg-dark: #070712;
+            --panel-bg: #0f0f1f;
+            --accent: #a855f7; /* Horizon Purple for Lens Tools */
+            --accent-glow: rgba(168, 85, 247, 0.4);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --correct: #10b981;
+            --ui-border: rgba(168, 85, 247, 0.2);
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .brand-title {
+            text-align: center;
+            margin: 0 0 10px 0;
+            font-size: 2.2rem;
+            font-weight: 200;
+            letter-spacing: 12px;
+            text-transform: uppercase;
+            background: linear-gradient(to bottom, #fff 40%, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .screen { 
+            display: none; 
+            width: 100%; 
+            height: 100%; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        .active-screen { display: flex; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+        .panel {
+            background: var(--panel-bg); 
+            padding: 40px; 
+            border-radius: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);
+            width: 90%; 
+            max-width: 850px; 
+            border: 1px solid var(--ui-border);
+            display: flex; 
+            flex-direction: column; 
+            gap: 25px;
+        }
+
+        /* --- Preview Area --- */
+        .preview-container {
+            width: 100%; 
+            height: 150px; 
+            background: #ffffff; 
+            border-radius: 16px;
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            position: relative; 
+            overflow: hidden; 
+            border: 2px solid var(--accent);
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .preview-label { 
+            position: absolute; 
+            top: 10px; 
+            left: 14px; 
+            color: #94a3b8; 
+            font-size: 0.65rem; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+        }
+
+        /* --- Settings Grid --- */
+        .config-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .setting-group label { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 0.7rem; 
+            font-weight: 800; 
+            margin-bottom: 8px; 
+            color: var(--accent); 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .setting-group label span { color: var(--text-dim); font-family: monospace; }
+        .input-row { 
+            background: #070712; 
+            border: 1px solid var(--ui-border); 
+            border-radius: 10px; 
+            padding: 10px 14px; 
+        }
+        input[type=range] { 
+            width: 100%; 
+            cursor: pointer; 
+            accent-color: var(--accent); 
+            background: transparent;
+        }
+
+        .btn-start { 
+            width: 100%; 
+            padding: 18px; 
+            font-size: 0.9rem; 
+            font-weight: 800; 
+            border-radius: 12px; 
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+            text-transform: uppercase; 
+            letter-spacing: 3px; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+        .btn-start:hover { 
+            filter: brightness(1.2); 
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--accent-glow);
+        }
+
+        /* --- Alignment Utility --- */
+        #alignment-box { 
+            border: 2px dashed var(--accent); 
+            background: rgba(168, 85, 247, 0.1); 
+            position: absolute; 
+            cursor: ns-resize;
+            border-radius: 8px;
+        }
+
+        /* --- Workspace --- */
+        #exercise-container { 
+            position: absolute; 
+            background: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-around; 
+            padding: 0 15px;
+            box-sizing: border-box;
+            border-radius: 4px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+        }
+        
+        .c-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hud { 
+            position: absolute; 
+            top: 40px; 
+            right: 60px; 
+            font-weight: 300; 
+            font-size: 2.5rem; 
+            color: var(--accent); 
+            font-family: 'Inter', monospace;
+            letter-spacing: -1px;
+        }
+
+        .hint-overlay {
+            position: absolute;
+            bottom: 40px;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="screen-start" class="screen active-screen">
+        <div class="panel">
+            <h1 class="brand-title">Horizon</h1>
+            <div class="preview-container">
+                <div class="preview-label">Optic Axis Alignment Preview</div>
+                <div id="preview-box" style="background:white; border:1px solid #ddd; display:flex; align-items:center; justify-content:space-around;"></div>
+            </div>
+            <div class="config-layout">
+                <div id="col-1"></div>
+                <div id="col-2"></div>
+            </div>
+            <button class="btn-start" onclick="goToAlignment()">Initialize Optics</button>
+        </div>
+    </div>
+
+    <div id="screen-align" class="screen" style="background: #000;">
+        <div id="alignment-box"></div>
+        <div class="hint-overlay">Set Eye Level Position • Press Enter</div>
+    </div>
+
+    <div id="screen-exercise" class="screen">
+        <div id="exercise-container"></div>
+        <div class="hud" id="timer">00:00</div>
+    </div>
+
+    <div id="screen-end" class="screen">
+        <div class="panel" style="max-width:450px; text-align:center;">
+            <h1 class="brand-title" style="font-size: 1.5rem; letter-spacing: 8px;">Analysis Complete</h1>
+            <div style="font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px;">Throughput Score</div>
+            <div style="font-size:6rem; font-weight:900; color: var(--accent); margin: 10px 0; line-height: 1;" id="res-score">0</div>
+            <button class="btn-start" onclick="location.reload()">New Session</button>
+        </div>
+    </div>
+
+    <script>
+        const configKeys = [
+            { id: 'duration', label: 'Session Time (min)', default: 1, min: 1, max: 10, step: 1, col: 1 },
+            { id: 'numObjects', label: 'Target Count', default: 5, min: 1, max: 10, step: 1, col: 1 },
+            { id: 'objSize', label: 'Object Scale', default: 22, min: 10, max: 60, step: 1, col: 1 },
+            { id: 'boxWidth', label: 'Horizontal Span', default: 2.0, min: 1.0, max: 5.0, step: 0.1, col: 1 },
+            { id: 'holeSize', label: 'Landolt Gap', default: 4, min: 1, max: 15, step: 0.5, col: 2 },
+            { id: 'strokeWidth', label: 'Ring Thickness', default: 5, min: 2, max: 15, step: 0.5, col: 2 },
+            { id: 'plusPower', label: 'Plus Power (+)', default: 2.00, min: 0.25, max: 4.00, step: 0.25, col: 2 },
+            { id: 'minusPower', label: 'Minus Power (-)', default: 2.00, min: 0.25, max: 4.00, step: 0.25, col: 2 }
+        ];
+
+        const settings = {};
+        configKeys.forEach(conf => {
+            settings[conf.id] = conf.default;
+            const group = document.createElement('div');
+            group.className = 'setting-group';
+            group.innerHTML = `<label>${conf.label} <span id="val-${conf.id}">${conf.default}</span></label>
+                <div class="input-row"><input type="range" id="in-${conf.id}" min="${conf.min}" max="${conf.max}" step="${conf.step}" value="${conf.default}"></div>`;
+            document.getElementById('col-' + conf.col).appendChild(group);
+            document.getElementById(`in-${conf.id}`).addEventListener('input', e => {
+                settings[conf.id] = parseFloat(e.target.value);
+                document.getElementById(`val-${conf.id}`).innerText = settings[conf.id].toFixed(2);
+                updatePreview();
+            });
+        });
+
+        function getLandoltSVG(size, stroke, gap, rotation) {
+            const center = size / 2;
+            const radius = (size - stroke) / 2;
+            const gapDeg = (gap / (2 * Math.PI * radius)) * 360;
+            const startAngle = gapDeg / 2;
+            const endAngle = 360 - (gapDeg / 2);
+            const x1 = center + radius * Math.cos(startAngle * Math.PI / 180);
+            const y1 = center + radius * Math.sin(startAngle * Math.PI / 180);
+            const x2 = center + radius * Math.cos(endAngle * Math.PI / 180);
+            const y2 = center + radius * Math.sin(endAngle * Math.PI / 180);
+            const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
+
+            return `<svg width="${size}" height="${size}" style="transform: rotate(${rotation}deg); display: block;">
+                <path d="M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}" fill="none" stroke="#111" stroke-width="${stroke}" stroke-linecap="butt" />
+            </svg>`;
+        }
+
+        function updatePreview() {
+            const pBox = document.getElementById('preview-box');
+            const totalW = (settings.objSize * settings.numObjects * settings.boxWidth);
+            pBox.style.width = Math.min(totalW, 600) + 'px';
+            pBox.style.height = (settings.objSize * 3) + 'px';
+            pBox.innerHTML = '';
+            for(let i=0; i<settings.numObjects; i++) {
+                const wrap = document.createElement('div');
+                wrap.className = 'c-wrapper';
+                wrap.innerHTML = getLandoltSVG(settings.objSize, settings.strokeWidth, settings.holeSize, 0);
+                pBox.appendChild(wrap);
+            }
+        }
+
+        let state = { boxY: window.innerHeight / 2 - 50, objects: [], stats: { correct: 0, total: 0, start: 0 } };
+
+        function goToAlignment() {
+            document.getElementById('screen-start').classList.remove('active-screen');
+            document.getElementById('screen-align').classList.add('active-screen');
+            const box = document.getElementById('alignment-box');
+            const w = (settings.objSize * settings.numObjects * settings.boxWidth);
+            const h = settings.objSize * 3;
+            box.style.width = w + 'px'; box.style.height = h + 'px';
+            box.style.left = (window.innerWidth/2 - w/2) + 'px'; box.style.top = state.boxY + 'px';
+
+            let drag = false;
+            box.onmousedown = () => drag = true;
+            window.onmousemove = e => { if(drag){ state.boxY = e.clientY - h/2; box.style.top = state.boxY + 'px'; }};
+            window.onmouseup = () => drag = false;
+            window.onkeydown = e => { if(e.key==='Enter') startExercise(); };
+        }
+
+        function startExercise() {
+            window.onkeydown = null;
+            document.getElementById('screen-align').classList.remove('active-screen');
+            document.getElementById('screen-exercise').classList.add('active-screen');
+            const container = document.getElementById('exercise-container');
+            const w = (settings.objSize * settings.numObjects * settings.boxWidth);
+            const h = settings.objSize * 3;
+            container.style.top = state.boxY + 'px';
+            container.style.left = (window.innerWidth/2 - w/2) + 'px';
+            container.style.width = w + 'px';
+            container.style.height = h + 'px';
+
+            state.stats.start = Date.now();
+            let rem = settings.duration * 60;
+            const timerInt = setInterval(() => {
+                rem--;
+                const m = Math.floor(rem/60);
+                const s = (rem%60).toString().padStart(2,'0');
+                document.getElementById('timer').innerText = `${m}:${s}`;
+                if(rem <= 0) { clearInterval(timerInt); endExercise(); }
+            }, 1000);
+
+            generateBox();
+            window.addEventListener('keydown', handleInput);
+        }
+
+        function generateBox() {
+            const container = document.getElementById('exercise-container');
+            container.innerHTML = '';
+            state.objects = [];
+            const rotMap = [{r:0, k:'ArrowRight'},{r:90, k:'ArrowDown'},{r:180, k:'ArrowLeft'},{r:270, k:'ArrowUp'}];
+
+            for(let i=0; i<settings.numObjects; i++) {
+                const conf = rotMap[Math.floor(Math.random()*4)];
+                const wrap = document.createElement('div');
+                wrap.className = 'c-wrapper';
+                wrap.innerHTML = getLandoltSVG(settings.objSize, settings.strokeWidth, settings.holeSize, conf.r);
+                container.appendChild(wrap);
+                state.objects.push({ el: wrap, key: conf.key, active: true });
+            }
+        }
+
+        function handleInput(e) {
+            const target = state.objects.find(o => o.active);
+            if(!target || !['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) return;
+            e.preventDefault();
+            state.stats.total++;
+            if(e.key === target.key) state.stats.correct++;
+            target.el.style.visibility = 'hidden';
+            target.active = false;
+            if(!state.objects.some(o => o.active)) {
+                // Flash feedback or immediate next
+                setTimeout(generateBox, 20);
+            }
+        }
+
+        function endExercise() {
+            window.removeEventListener('keydown', handleInput);
+            document.getElementById('screen-exercise').classList.remove('active-screen');
+            document.getElementById('screen-end').classList.add('active-screen');
+            document.getElementById('res-score').innerText = state.stats.correct;
+        }
+
+        updatePreview();
+    </script>
+</body>
+</html>
